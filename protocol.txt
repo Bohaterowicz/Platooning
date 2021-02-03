@@ -1,0 +1,20 @@
+login:
+
+in>
+{
+message_id : "log_in"
+username : str(username)
+pwd : str(pwdHash)
+remember: 1/0
+}
+
+out>
+{
+message_id : "log_in_OK"
+username : str(username)
+}
+or
+{
+message_id : "log_in_FAIL"
+msg : str(msg)
+}
