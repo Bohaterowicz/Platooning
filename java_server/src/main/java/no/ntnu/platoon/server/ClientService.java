@@ -21,10 +21,18 @@ public class ClientService {
 
     }
 
+    public void setUsername(String usr){
+        username = usr;
+    }
+
+    public String getUsername(){
+        return username;
+    }
+
     public JSONObject initialConnectionMessage(){
         try{
             String jsonString = buffReader.readLine();
-            System.out.print(jsonString);
+            System.out.println(jsonString);
 
             if(jsonString == null){
                 return null;
@@ -44,11 +52,18 @@ public class ClientService {
         }
     }
 
-    public void setUsername(String usr){
-        username = usr;
+    public void sendMessage(String msg) throws IOException {
+        buffWriter.write(msg);
+        buffWriter.newLine();
+        buffWriter.flush();
     }
 
-    public String getUsername(){
-        return username;
+    public JSONObject readMessages() throws IOException {
+        //TODO: This only reads one message from buffered reader, if more messages are queded, they will wait. Probably should iterate over all queued messages...
+        if(buffReader.ready()){
+            String temp = buffReader.readLine();
+            return new JSONObject(temp);
+        }
+        return null;
     }
 }
