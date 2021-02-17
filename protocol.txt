@@ -2,7 +2,7 @@ login:
 
 in>
 {
-message_id : "log_in"
+message_id : "login"
 username : str(username)
 pwd : str(pwdHash)
 remember: 1/0
@@ -18,3 +18,15 @@ or
 message_id : "log_in_FAIL"
 msg : str(msg)
 }
+
+
+get routes:
+in>
+{
+message_id : "get_platoon_routes"
+from_location : str(fromLocation)
+towards_location : str(towardsLocation)
+start_date : str(DD-MM-YYYY)
+}
+
+out>
