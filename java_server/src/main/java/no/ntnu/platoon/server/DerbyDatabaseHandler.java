@@ -7,6 +7,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.logging.Level;
 
 public class DerbyDatabaseHandler {
 
@@ -54,6 +55,16 @@ public class DerbyDatabaseHandler {
                             "numRegistered int NOT NULL," +
                             "PRIMARY KEY(fromLocation, towardsLocation, driver, startDate))";
 
+            final String sqlQueryCreateUserRoutes =
+                    "CREATE TABLE userRoutes (" +
+                            "userName varchar(255) NOT NULL" +
+                            "fromLocation varchar(255) NOT NULL," +
+                            "towardsLocation varchar(255) NOT NULL," +
+                            "driver varchar(255) NOT NULL," +
+                            "startDate DATE NOT NULL" +
+                            "PRIMARY KEY(userName, fromLocation, towardsLocation, driver, startDate)" +
+                            "FOREIGN KEY (fromLocation, towardsLocation, driver, startDate) REFERENCES platoons(fromLocation, towardsLocation, driver, startDate))";
+
             final String sqlQueryAddUser =
                     "INSERT INTO users (userName, password) " +
                             "VALUES(?, ?)";
@@ -65,6 +76,7 @@ public class DerbyDatabaseHandler {
             Statement statement = dataseConnection.createStatement();
             statement.execute(sqlQueryCreateUsers);
             statement.execute(sqlQueryCreatePlatoonTable);
+            statement.execute(sqlQueryCreateUserRoutes);
             statement.close();
 
             PreparedStatement newStatement = dataseConnection.prepareStatement(sqlQueryAddUser);
@@ -93,6 +105,26 @@ public class DerbyDatabaseHandler {
     public boolean ValidateUserCredentials(String username, String pwdHash) {
         if (usernameExists(username)) {
             return passwordMatch(username, pwdHash);
+        }
+        return false;
+    }
+
+    public boolean RegisterNewUser(String username, String pwd) {
+        if(!usernameExists(username)){
+            try{
+                final String sqlQuery = "INSERT INTO users (userName, password) " +
+                        "VALUES (?, ?)";
+
+                PreparedStatement statement = dataseConnection.prepareStatement(sqlQuery);
+                statement.setString(1, username);
+                statement.setString(2, pwd);
+
+                statement.executeUpdate();
+                statement.close();
+                return true;
+            } catch(SQLException e){
+                System.out.println(e.getMessage());
+            }
         }
         return false;
     }
@@ -165,7 +197,8 @@ public class DerbyDatabaseHandler {
         return resultList;
     }
 
-    public void AddPlatoonRoute(String from, String towards, String driver, String strDate, String strTime) {
+    public boolean AddPlatoonRoute(String from, String towards, String driver, String strDate, String strTime) {
+        boolean Result = false;
         try{
             final String sqlAddPlatoon =
                     "INSERT INTO platoons (fromLocation, towardsLocation, driver, startDate, time, numRegistered) " +
@@ -184,8 +217,79 @@ public class DerbyDatabaseHandler {
             Statement.setInt(6, 0);
             Statement.executeUpdate();
             Statement.close();
+            Result = true;
         }catch (Exception e){
             System.out.println(e.getMessage());
         }
+        return Result;
+    }
+
+    public JSONObject GetPlatoonRoute(String from, String towards, String leader, String date) {
+        JSONObject RouteResult = new JSONObject();
+        try{
+            final String sqlQuery =
+                    "SELECT * FROM platoons WHERE (fromLocation=? AND towardsLocation=? AND startDate=? AND driver=?)";
+            PreparedStatement Statement = dataseConnection.prepareStatement(sqlQuery);
+            Statement.setString(1, from);
+            Statement.setString(2, towards);
+            Statement.setString(3, date);
+            Statement.setString(4, leader);
+            ResultSet result = Statement.executeQuery();
+            Statement.close();
+            while(result.next()){
+                RouteResult.put(Message.FROM_LOCATION, result.getString(1));
+                RouteResult.put(Message.TOWARDS_LOCATION, result.getString(2));
+                RouteResult.put(Message.DRIVER, result.getString(3));
+                RouteResult.put(Message.START_DATE, result.getString(4));
+                RouteResult.put(Message.START_TIME, result.getString(5));
+                RouteResult.put(Message.REGISTERED_COUNT, result.getInt(6));
+            }
+        }
+        catch(SQLException e){
+            System.out.println(e.getMessage());
+        }
+        return RouteResult;
+    }
+
+    public void JoinPlatoonRoute(String username, String from, String towards, String leader, String date) {
+        try{
+            final String sqlQuery = "UPDATE platoons SET numRegistered+=1 WHERE (fromLocation=? AND towardsLocation=? AND startDate=? AND driver=?)";
+            final String sqlAddUserRoute = "INSERT INTO userRoutes (userName, fromLocation, towardsLocation, driver, startDate)" +
+                    "VALUES(?, ?, ?, ?, ?)";
+            PreparedStatement Statement = dataseConnection.prepareStatement(sqlQuery);
+            Statement.setString(1, from);
+            Statement.setString(2, towards);
+            Statement.setString(3, date);
+            Statement.setString(4, leader);
+            Statement.executeUpdate();
+            Statement.close();
+            PreparedStatement Statement2 = dataseConnection.prepareStatement(sqlAddUserRoute);
+            Statement2.setString(1, username);
+            Statement2.setString(2, from);
+            Statement2.setString(3, towards);
+            Statement2.setString(4, leader);
+            Statement2.setString(5, date);
+            Statement2.executeUpdate();
+            Statement2.close();
+        }
+        catch(SQLException e){
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public JSONObject GetUserRoutes(String username) {
+        try{
+            final String sqlQuery = "SELECT * FROM userRoutes WHERE(userName=?)";
+            PreparedStatement Statement = dataseConnection.prepareStatement(sqlQuery);
+            Statement.setString(1, username);
+            ResultSet Result = Statement.executeQuery();
+            while (Result.next()){
+
+            }
+        }
+        catch(SQLException e){
+            System.out.println(e.getMessage());
+        }
+        return null;
     }
 }

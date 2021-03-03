@@ -39,7 +39,7 @@ public class ClientService {
             }
 
             JSONObject jsonMessage = new JSONObject(jsonString);
-            if(jsonMessage.get(Message.MESSAGE_ID).toString().equals(Message.LOGIN)){
+            if(jsonMessage.get(Message.MESSAGE_ID).toString().equals(Message.LOGIN) || jsonMessage.get(Message.MESSAGE_ID).toString().equals(Message.REGISTER)){
                 return jsonMessage;
             }
             else{

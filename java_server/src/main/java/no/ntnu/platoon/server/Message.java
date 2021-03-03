@@ -5,6 +5,7 @@ import org.json.JSONObject;
 public class Message {
     public static final String MESSAGE_ID = "message_id";
     public static final String LOGIN = "login";
+    public static final String REGISTER = "register";
     public static final String USERNAME = "username";
     public static final String PWD_HASH = "pwd";
     public static final String GET_PLATOON_ROUTES = "get_platoon_routes";
@@ -28,5 +29,13 @@ public class Message {
         tmpObj.put(MESSAGE_ID, "login_DENY");
 
         return tmpObj.toString();
+    }
+
+    public static String createConfirmRegisterMessage(String username) {
+        JSONObject tmpObj = new JSONObject();
+        tmpObj.put(MESSAGE_ID, "register_OK");
+        tmpObj.put(USERNAME, username);
+
+        return  tmpObj.toString();
     }
 }
