@@ -1,7 +1,6 @@
 package no.ntnu.platoon.server;
 
 import org.json.JSONObject;
-
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -26,9 +25,14 @@ public class PlatoonServer {
         running = true;
         try{
             db = new DerbyDatabaseHandler();
-            JSONObject temp = new JSONObject();
-            //createNewPlatoonRoute(null, temp);
-            //getAllPlatoonRoutes(null, temp);
+            db.AddPlatoonRoute("Oslo", "Munich", "Olav", "17-02-2021", "10:30:00");
+            db.AddPlatoonRoute("Oslo", "Munich", "Jhon", "17-02-2021", "12:30:00");
+            db.AddPlatoonRoute("Trondheim", "Berlin", "Per", "15-11-2021", "12:30:00");
+            ArrayList<JSONObject> platoonRoutes = db.getPlatoonRoutes("Oslo", "Munich", "17-02-2021");
+            JSONObject result = new JSONObject();
+            result.put(Message.MESSAGE_ID, "platoon_routes_result");
+            result.put("routes", platoonRoutes);
+            String PlatoonRoutesResult = result.toString();
             threadExecutor = Executors.newCachedThreadPool();
             threadExecutor.execute(this::connectionThread);
             threadExecutor.execute(this::readMessagesThread);
@@ -56,7 +60,7 @@ public class PlatoonServer {
 
     private void connectClient(Socket socket) throws IOException {
         final ClientService newClient = new ClientService(socket);
-
+        System.out.println("New Connection...");
         JSONObject initMessage = newClient.initialConnectionMessage();
         if(initMessage == null){
             return;
@@ -115,6 +119,9 @@ public class PlatoonServer {
                                     case "join_platoon_route":
                                         JoinPlatoonRoute(currentClient, currentMessage);
                                         break;
+                                    case "get_user_routes":
+                                        GetUserRoutes(currentClient, currentMessage);
+                                        break;
                                 }
                             }
                         }catch(IOException e){
@@ -135,7 +142,10 @@ public class PlatoonServer {
 
 
         ArrayList<JSONObject> platoonRoutes = db.getPlatoonRoutes(from, towards, date);
-        String PlatoonRoutesResult = platoonRoutes.toString();
+        JSONObject result = new JSONObject();
+        result.put(Message.MESSAGE_ID, "platoon_routes_result");
+        result.put("routes", platoonRoutes);
+        String PlatoonRoutesResult = result.toString();
         try{
             currentClient.sendMessage(PlatoonRoutesResult);
         }catch(IOException e) {
@@ -144,11 +154,11 @@ public class PlatoonServer {
     }
 
     private void createNewPlatoonRoute(ClientService currentClient, JSONObject msg) {
-        String from = "Oslo";
-        String towards = "Berlin";
-        String driver = "Henry";
-        String date = "17-02-2021";
-        String time = "10:30:00";
+        String from = msg.getString(Message.FROM_LOCATION);
+        String towards = msg.getString(Message.TOWARDS_LOCATION);
+        String driver = msg.getString(Message.DRIVER);
+        String date = "17-02-2021"; //msg.getString(Message.START_DATE);
+        String time = "10:30:00"; //msg.getString(Message.START_TIME);
         boolean AddResult = db.AddPlatoonRoute(from, towards, driver, date, time);
         JSONObject JAddResult = new JSONObject();
         JAddResult.put(Message.MESSAGE_ID, "new_platoon_route_result");
@@ -161,10 +171,10 @@ public class PlatoonServer {
     }
 
     private void JoinPlatoonRoute(ClientService currentClient, JSONObject msg){
-        String leader = ""; //msg.getString(Message.DRIVER);
-        String date = ""; //msg.getString(Message.START_DATE);
-        String from = ""; //msg.getString(Message.FROM_LOCATION);
-        String towards = ""; //msg.getString(Message.TOWARDS_LOCATION);
+        String leader = msg.getString(Message.DRIVER);
+        String date = msg.getString(Message.START_DATE);
+        String from = msg.getString(Message.FROM_LOCATION);
+        String towards = msg.getString(Message.TOWARDS_LOCATION);
         boolean Result = false;
         JSONObject Route = db.GetPlatoonRoute(from, towards, leader, date);
         if(Route.getInt(Message.REGISTERED_COUNT) < 5){
@@ -185,10 +195,16 @@ public class PlatoonServer {
     }
 
     private void GetUserRoutes(ClientService currentClient, JSONObject msg){
-        String username = ""; //msg.getString(Message.USERNAME);
-        JSONObject UserRoutes = db.GetUserRoutes(username);
-
+        String username = msg.getString(Message.USERNAME);
+        ArrayList<JSONObject> UserRoutes = db.GetUserRoutes(username);
+        JSONObject JSONRoutes = new JSONObject(UserRoutes);
+        try{
+            currentClient.sendMessage(JSONRoutes.toString());
+        }
+        catch(IOException e){
+            System.out.println(e.getMessage());
+        }
     }
 
-    public static void main(String[] args) { new PlatoonServer(); System.out.print("Running..."); }
+    public static void main(String[] args) { new PlatoonServer(); System.out.print("Running... (ver. 0.2)"); }
 }

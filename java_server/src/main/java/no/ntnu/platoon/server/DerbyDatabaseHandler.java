@@ -1,5 +1,6 @@
 package no.ntnu.platoon.server;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.sql.*;
@@ -61,7 +62,7 @@ public class DerbyDatabaseHandler {
                             "fromLocation varchar(255) NOT NULL," +
                             "towardsLocation varchar(255) NOT NULL," +
                             "driver varchar(255) NOT NULL," +
-                            "startDate DATE NOT NULL" +
+                            "startDate DATE NOT NULL," +
                             "PRIMARY KEY(userName, fromLocation, towardsLocation, driver, startDate)" +
                             "FOREIGN KEY (fromLocation, towardsLocation, driver, startDate) REFERENCES platoons(fromLocation, towardsLocation, driver, startDate))";
 
@@ -182,7 +183,8 @@ public class DerbyDatabaseHandler {
                     resultObj.put(Message.FROM_LOCATION, result.getString(1));
                     resultObj.put(Message.TOWARDS_LOCATION, result.getString(2));
                     resultObj.put(Message.DRIVER, result.getString(3));
-                    resultObj.put(Message.START_DATE, result.getString(4));
+                    Date tempDate = new SimpleDateFormat("yyyy-MM-dd").parse(result.getString(4));
+                    resultObj.put(Message.START_DATE, formatter.format(tempDate));
                     resultObj.put(Message.START_TIME, result.getString(5));
                     resultObj.put(Message.REGISTERED_COUNT, result.getString(6));
                     resultList.add(resultObj);
@@ -277,15 +279,18 @@ public class DerbyDatabaseHandler {
         }
     }
 
-    public JSONObject GetUserRoutes(String username) {
+    public ArrayList<JSONObject> GetUserRoutes(String username) {
         try{
             final String sqlQuery = "SELECT * FROM userRoutes WHERE(userName=?)";
             PreparedStatement Statement = dataseConnection.prepareStatement(sqlQuery);
             Statement.setString(1, username);
             ResultSet Result = Statement.executeQuery();
+            ArrayList<JSONObject> Routes = new ArrayList<>();
             while (Result.next()){
-
+                JSONObject Route = GetPlatoonRoute(Result.getString(1), Result.getString(2), Result.getString(3), Result.getString(4));
+                Routes.add(Route);
             }
+            return Routes;
         }
         catch(SQLException e){
             System.out.println(e.getMessage());
